@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>가은 중간고사 문제풀이</title>
+<title>중간고사 문제풀이</title>
 <style>
 :root{--bg:#f6f5f1;--card:#fff;--ink:#1d1c1a;--muted:#6b6862;--line:#e3e0d8;--accent:#2f6b4f;--accent-soft:#e3efe8;--bad:#b4442f;--bad-soft:#f8e6e1;--good:#2f6b4f;--warn:#a5701a;--red:#c8372d}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#171716;--card:#211f1d;--ink:#ecebe7;--muted:#a19d95;--line:#35322e;--accent:#7cc39c;--accent-soft:#22362b;--bad:#ef8a75;--bad-soft:#3a2420;--good:#7cc39c;--warn:#e0b25a;--red:#ff7b6e}}
@@ -65,7 +65,16 @@ textarea.inp{min-height:150px;resize:vertical}
 .opt.wrong{border-color:var(--bad);background:var(--bad-soft)}.opt.wrong .on{background:var(--bad);border-color:var(--bad);color:var(--card)}
 .opt:disabled{cursor:default;opacity:1}
 .opt:focus,.btn:focus{outline:3px solid var(--accent);outline-offset:2px}
-.btn.on{color:var(--warn);border-color:var(--warn);font-weight:700}
+.iconbtn{width:48px;height:48px;border-radius:50%;border:none;background:transparent;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;flex:none}
+.iconbtn.star{font-size:36px;line-height:1;color:#f2b705}
+.iconbtn.star.on{text-shadow:0 0 1px #c99200}
+.iconbtn.minus span{display:block;width:36px;height:36px;border-radius:50%;background:#e03b2f;position:relative}
+.iconbtn.minus span:after{content:"";position:absolute;left:9px;right:9px;top:50%;height:5px;margin-top:-2.5px;border-radius:3px;background:#fff}
+.iconbtn:focus{outline:3px solid var(--accent);outline-offset:2px}
+.fixbar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--bg);border-top:1px solid var(--line);box-shadow:0 -4px 14px rgba(0,0,0,.06);padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
+.fixin{max-width:728px;margin:0 auto}
+.fixin .big{min-height:46px}
+body.hasfix .wrap{padding-bottom:150px}
 .kbhint{font-size:12px;color:var(--muted);margin-top:6px}
 .oxrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}.oxrow .opt{justify-content:center;font-size:22px;font-weight:700;min-height:64px}.oxrow .opt .on{display:none}
 .ex{margin-top:6px;font-size:14px;color:var(--muted);white-space:pre-wrap}
@@ -76,7 +85,7 @@ textarea.inp{min-height:150px;resize:vertical}
 </head>
 <body>
 <div class="wrap">
-<header><h1>가은 중간고사 문제풀이</h1><button class="btn ghost noprint" id="homeBtn" type="button">처음으로</button></header>
+<header><h1 id="ttl">중간고사 문제풀이</h1><button class="btn ghost noprint" id="homeBtn" type="button">처음으로</button></header>
 <div class="tabs" role="tablist" id="tabs"></div>
 <main id="view"></main>
 </div>
@@ -96,7 +105,7 @@ function today(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth
 function st(id){return S.items[id]||(S.items[id]={n:0,ok:0,ng:0,last:null,time:0})}
 function T(){S.hidden=S.hidden||{};return DATA[subj].tests.filter(x=>!S.hidden[x.id])}
 function pool(mode){return mode==='test'?T():DATA[subj].essays}
-function starCur(){const c=S.cur;if(!c||c.mode!=='test')return;const id=c.queue[c.i];S.star=S.star||{};if(S.star[id])delete S.star[id];else S.star[id]=1;save();const b=$('#starQ');if(b){b.textContent=S.star[id]?'★ 시험 전 확인':'☆ 시험 전 확인';b.classList.toggle('on',!!S.star[id])}}
+function starCur(){const c=S.cur;if(!c||c.mode!=='test')return;const id=c.queue[c.i];S.star=S.star||{};if(S.star[id])delete S.star[id];else S.star[id]=1;save();const b=$('#starQ');if(b){b.textContent=S.star[id]?'★':'☆';b.classList.toggle('on',!!S.star[id])}}
 function hideCur(){const c=S.cur;if(!c||c.mode!=='test')return;const id=c.queue[c.i];S.hidden=S.hidden||{};S.hidden[id]=1;c.queue.splice(c.i,1);delete c.res[id];clearInterval(tick);save();card()}
 function secOf(it,mode){return mode==='test'?it.sec:'예상문제'}
 
@@ -105,7 +114,8 @@ function tabs(){
   document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{if(S.cur&&!confirm('지금 풀던 회차를 멈추고 과목을 바꿀까요? (지금까지 푼 건 저장돼요)'))return;S.cur=null;save();subj=b.dataset.k;try{localStorage.setItem(KEY+'-subj',subj)}catch(e){}tabs();home()});
 }
 
-function home(){
+function quizMode(on){document.body.classList.toggle('hasfix',!on&&false);$('#tabs').classList.toggle('hidden',!!on);$('#ttl').textContent=on?'중간고사 문제풀이 - '+DATA[subj].name:'중간고사 문제풀이'}
+function home(){quizMode(false);
   if(S.cur&&S.cur.subj===subj){return resumeCard()}
   const t=T(),e=DATA[subj].essays;
   const seen=t.filter(x=>S.items[x.id]&&S.items[x.id].n).length;
@@ -113,22 +123,23 @@ function home(){
   const secs=[...new Set(t.map(x=>x.sec))];
   $('#view').innerHTML=`
   <section class="card">
-    <h2>암기 테스트 <span class="muted">${t.length}문항</span></h2>
-    <div class="stat"><div><b>${seen}</b><span>한 번이라도 푼 문항</span></div><div><b>${weak}</b><span>지금 틀린 상태</span></div><div><b>${S.sessions.filter(s=>s.subj===subj&&s.mode==='test').length}</b><span>푼 회차</span></div></div>
-    <p class="muted">${t.some(x=>x.t==='oxfix')?'O/X는 X를 고르면 틀린 단어를 맞게 고쳐 써야 맞음으로 쳐요. ':''}${t.some(x=>x.t==='mc'||x.t==='multi')?'보기 고르기·괄호 넣기·복수선택·O/X가 섞여 나와요. 보기는 누르면 바로 채점, 복수선택은 다 고른 뒤 채점하기. 괄호 넣기는':'답을 입력하면'} 바로 채점돼요 (키워드가 80% 이상 들어가면 맞음). 1차 = 고른 범위 전체 → 2·3차 = 틀렸거나 ${SLOW_SEC}초 넘게 걸린 문제만.</p>
     <div class="row noprint" style="margin-bottom:6px"><button class="btn" type="button" id="all">전체 선택</button><button class="btn" type="button" id="none">선택 해제</button></div>
     <div class="secs">${secs.map(s=>{const n=t.filter(x=>x.sec===s).length;const w=t.filter(x=>x.sec===s&&S.items[x.id]&&S.items[x.id].last==='ng').length;return `<label><input type="checkbox" value="${esc(s)}"> <span>${s.startsWith('🔴')?'<b>'+esc(s)+'</b>':esc(s)}</span><small>${n}문항${w?` · 틀림 ${w}`:''}</small></label>`}).join('')}</div>
     <label class="toggle"><input type="checkbox" id="shuf" checked> 순서 섞기</label>
     ${(()=>{const hs=DATA[subj].tests.filter(x=>S.hidden&&S.hidden[x.id]);return hs.length?`<details style="margin-top:8px"><summary class="muted" style="cursor:pointer">🗑 제외한 문제 ${hs.length}개 (눌러서 보기·되돌리기)</summary><div style="display:grid;gap:6px;margin-top:6px">${hs.map(x=>`<div class="row" style="justify-content:space-between;flex-wrap:nowrap;border-bottom:1px solid var(--line);padding:4px 0"><span style="font-size:14px">${esc(x.sec.split(' ')[0])} · ${esc(x.q)}</span><button class="btn ghost unhide" type="button" data-id="${x.id}" style="min-height:32px;padding:4px 10px;font-size:13px;flex:none">되돌리기</button></div>`).join('')}<button class="btn" id="unhideAll" type="button">전부 되돌리기</button></div></details>`:''})()}
-    <div class="row" style="margin-top:12px"><button class="btn primary big" type="button" id="startT">1차 시작</button><button class="btn bad" type="button" id="weakT" ${weak?'':'disabled'}>틀린 것만 (${weak})</button></div>
-    ${(()=>{const n=t.filter(x=>(S.star||{})[x.id]).length;return `<div class="row" style="margin-top:8px"><button class="btn big" type="button" id="starT" ${n?'':'disabled'}>★ 별표 문제 풀기 (${n})</button><button class="btn big" type="button" id="starL" ${n?'':'disabled'}>★ 별표 한눈에 보기</button></div>`})()}
+
   </section>
   ${e.length?'':'<!--'}<section class="card">
     <h2>예상문제 · 서술형 <span class="muted">${e.length}문항</span></h2>
     <p class="muted">답안을 쓰면 모범답안의 핵심 키워드가 몇 개 들어갔는지로 채점해요 (80% 이상 맞음). 빠진 키워드는 빨간색으로 보여요. 채점이 이상하면 "채점 바꾸기"로 고칠 수 있어요.</p>
     <div class="row"><button class="btn primary big" type="button" id="startE">1차 시작</button><button class="btn bad" type="button" id="weakE" ${e.some(x=>S.items[x.id]&&S.items[x.id].last==='ng')?'':'disabled'}>틀린 것만</button></div>
   </section>${e.length?'':'-->'}
-  <section class="card"><div class="row"><button class="btn big" type="button" id="rep">결과 보고서</button></div></section>`;
+  <section class="card"><div class="row"><button class="btn big" type="button" id="rep">결과 보고서</button></div></section>
+  <div class="fixbar noprint"><div class="fixin">
+    <div class="row" ><button class="btn primary big" type="button" id="startT">1차 시작</button><button class="btn bad" type="button" id="weakT" ${weak?'':'disabled'}>틀린 것만 (${weak})</button></div>
+    ${(()=>{const n=t.filter(x=>(S.star||{})[x.id]).length;return `<div class="row" style="margin-top:8px"><button class="btn big" type="button" id="starT" ${n?'':'disabled'}>★ 문제 풀기 (${n})</button><button class="btn big" type="button" id="starL" ${n?'':'disabled'}>★ 한눈에 보기</button></div>`})()}
+  </div></div>`;
+  document.body.classList.add('hasfix');
   const boxes=()=>[...document.querySelectorAll('.secs input')];
   $('#all').onclick=()=>boxes().forEach(b=>b.checked=true);
   $('#none').onclick=()=>boxes().forEach(b=>b.checked=false);
@@ -171,7 +182,7 @@ function grade(it,mode,ans){
   const r=hit.length/toks.length;const okLine=0.8;
   return {v:r>=okLine?'ok':r>=0.4?'part':'ng',hit,miss,r}}
 let tick=null,t0=0,revealed=false,lastGrade=null;
-function card(){
+function card(){quizMode(true);
   const c=S.cur;if(c.i>=c.queue.length)return endRound();
   const all=pool(c.mode);const it=all.find(x=>x.id===c.queue[c.i]);
   if(!it){c.i++;save();return card()}
@@ -180,7 +191,7 @@ function card(){
   if(c.mode==='test'&&(it.t==='mc'||it.t==='multi'||it.t==='ox'||it.t==='oxfix')){const isox=it.t==='ox'||it.t==='oxfix';const op=isox?['O','X']:it.opts;const order=isox?[0,1]:shuffle(op.map((_,i)=>i));curChoice={it,op,order,multi:it.t==='multi',sel:new Set()}}
   const red=(it.sec||'').startsWith('🔴')||/★/.test(it.q);
   $('#view').innerHTML=`<section class="card">
-   <div class="row" style="justify-content:space-between"><span class="chip ${red?'red':''}">${esc(c.mode==='test'?it.sec:it.id.split('-')[1])}</span><span class="row" style="gap:10px">${c.mode==='test'?`<button class="btn ghost${(S.star||{})[it.id]?' on':''}" id="starQ" type="button" style="min-height:32px;padding:4px 10px;font-size:13px" title="S 키">${(S.star||{})[it.id]?'★':'☆'} 시험 전 확인</button>`:''}${c.mode==='test'?'<button class="btn ghost" id="hideQ" type="button" style="min-height:32px;padding:4px 10px;font-size:13px" title="Delete 키">🗑 안 나올 듯 · 제외</button>':''}<span class="timer" id="tm">0초</span></span></div>
+   <div class="row" style="justify-content:space-between"><span class="chip ${red?'red':''}">${esc(c.mode==='test'?it.sec:it.id.split('-')[1])}</span><span class="row" style="gap:10px">${c.mode==='test'?`<button class="iconbtn star${(S.star||{})[it.id]?' on':''}" id="starQ" type="button" title="시험 전 확인 (S 키)" aria-label="시험 전 확인 별표">${(S.star||{})[it.id]?'★':'☆'}</button>`:''}${c.mode==='test'?'<button class="iconbtn minus" id="hideQ" type="button" title="안 나올 듯 · 제외 (Delete 키)" aria-label="안 나올 듯 제외"><span></span></button>':''}<span class="timer" id="tm">0초</span></span></div>
    <div class="muted" style="margin-top:8px">${c.mode==='test'?'암기 테스트':'예상문제'} ${c.round}차${c.label?' ('+esc(c.label)+')':''} · ${c.i+1} / ${c.queue.length}</div>
    <div class="bar"><i style="width:${(c.i/c.queue.length*100).toFixed(1)}%"></i></div>
    <div class="q">${esc(it.q)}</div>
@@ -258,7 +269,7 @@ function endRound(){
   $('#rp').onclick=report;
 }
 
-function starList(){const t=T().filter(x=>(S.star||{})[x.id]);const secs=[...new Set(t.map(x=>x.sec))];
+function starList(){quizMode(false);const t=T().filter(x=>(S.star||{})[x.id]);const secs=[...new Set(t.map(x=>x.sec))];
   $('#view').innerHTML=`<section class="card"><div class="row" style="justify-content:space-between"><h2>★ 시험 전 확인 ${t.length}문항</h2><button class="btn noprint" id="bk" type="button">돌아가기</button></div>
   <p class="muted">문제 → 답 → 근거 순서로 빠르게 훑어보는 화면이에요. 답을 가리고 보려면 "답 가리기"를 켜고, 문제를 누르면 그 답만 보여요.</p>
   <label class="toggle noprint"><input type="checkbox" id="cover"> 답 가리기</label>
@@ -268,7 +279,7 @@ function starList(){const t=T().filter(x=>(S.star||{})[x.id]);const secs=[...new
   $('#cover').onchange=e=>document.querySelectorAll('.sla').forEach(a=>a.classList.toggle('hidden',e.target.checked));
   document.querySelectorAll('.slq').forEach(q=>q.onclick=()=>q.nextElementSibling.classList.toggle('hidden'));
   document.querySelectorAll('.unstar').forEach(b=>b.onclick=()=>{delete S.star[b.dataset.id];save();starList()});}
-function report(){
+function report(){quizMode(false);
   const t=T(),e=DATA[subj].essays;
   const secs=[...new Set(t.map(x=>x.sec))];
   const rows=secs.map(s=>{const its=t.filter(x=>x.sec===s);let ok=0,n=0,weak=0,seen=0;its.forEach(x=>{const v=S.items[x.id];if(v&&v.n){seen++;ok+=v.ok;n+=v.n;if(v.last==='ng')weak++}});const p=n?Math.round(ok/n*100):null;return {s,total:its.length,seen,p,weak}});
